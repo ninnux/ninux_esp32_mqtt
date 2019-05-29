@@ -16,6 +16,7 @@ static const char *TAG2 = "ninux_mqtt";
 
 char mqtt_data[512];
 char mqtt_topic[512];
+char input_mqtt_topic[512];
 
 EventGroupHandle_t mqtt_event_group;
 //extern const int CONNECTED_BIT = BIT0;
@@ -24,6 +25,7 @@ extern const int CONNECTED_BIT;
 static esp_mqtt_client_handle_t mqtt_client = NULL;
 
 void ninux_mqtt_init(void);
+void ninux_mqtt_subscribe_topic(char *);
 void ninux_mqtt_publish(char* topic, char* data);
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event);
 static void mqtt_app_start(void);

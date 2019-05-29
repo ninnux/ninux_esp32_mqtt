@@ -22,14 +22,19 @@ void ninux_mqtt_publish(char* topic, char* data){
 	xEventGroupClearBits(mqtt_event_group, CONNECTED_BIT);
 }
 
+void ninux_mqtt_subscribe_topic(char* topic){
+	sprintf(input_mqtt_topic,"%s",topic);
+}
+
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
+    int msg_id;
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG2, "MQTT_EVENT_CONNECTED");
             xEventGroupSetBits(mqtt_event_group, CONNECTED_BIT);
-            //msg_id = esp_mqtt_client_subscribe(mqtt_client, CONFIG_EXAMPLE_SUBSCIBE_TOPIC, qos_test);
+            msg_id = esp_mqtt_client_subscribe(client,input_mqtt_topic , 0);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG2, "MQTT_EVENT_DISCONNECTED");
@@ -70,4 +75,5 @@ static void mqtt_app_start(void)
         // .user_context = (void *)your_context
     };
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+    esp_mqtt_client_start(mqtt_client);
 }
