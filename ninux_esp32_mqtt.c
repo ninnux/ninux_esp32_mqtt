@@ -1,41 +1,35 @@
 
 #include "ninux_esp32_mqtt.h"
 
-void ninux_mqtt_init(){
+
+void ninux_mqtt_init(void){
 	mqtt_app_start();
 }
-
 void ninux_mqtt_publish(char* topic, char* data){
-	mqtt_app_start();
+    	int msg_id;
 	bzero(mqtt_data,sizeof(mqtt_data));
 	bzero(mqtt_topic,sizeof(mqtt_topic));
 	sprintf(mqtt_data,"%s",data);
 	sprintf(mqtt_topic,"%s",topic);
+        
+        esp_mqtt_client_stop(mqtt_client);
+        esp_mqtt_client_start(mqtt_client);
+        //esp_mqtt_client_set_uri(mqtt_client, CONFIG_EXAMPLE_BROKER_TCP_URI);
+        ESP_LOGI(TAG2, "Note free memory: %d bytes", esp_get_free_heap_size());
+        xEventGroupWaitBits(mqtt_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
+
+        msg_id = esp_mqtt_client_publish(mqtt_client, mqtt_topic, mqtt_data, 0, 0, 0);
+	xEventGroupClearBits(mqtt_event_group, CONNECTED_BIT);
 }
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
-    int msg_id;
-    //char mqtt_topic[128];
-    //extern char* mqtt_data;
-    //extern char* mqtt_topic;
-    // your_context_t *context = event->context;
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG2, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_publish(client, mqtt_topic, mqtt_data, 0, 0, 0);
-            ESP_LOGI(TAG2, "sent publish successful, msg_id=%d", msg_id);
-
-            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
-            ESP_LOGI(TAG2, "sent subscribe successful, msg_id=%d", msg_id);
-
-            msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-            ESP_LOGI(TAG2, "sent subscribe successful, msg_id=%d", msg_id);
-
-            msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-            ESP_LOGI(TAG2, "sent unsubscribe successful, msg_id=%d", msg_id);
-	    //esp_mqtt_client_destroy(client);
+            xEventGroupSetBits(mqtt_event_group, CONNECTED_BIT);
+            //msg_id = esp_mqtt_client_subscribe(mqtt_client, CONFIG_EXAMPLE_SUBSCIBE_TOPIC, qos_test);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG2, "MQTT_EVENT_DISCONNECTED");
@@ -43,8 +37,8 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 
         case MQTT_EVENT_SUBSCRIBED:
             ESP_LOGI(TAG2, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-            msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
-            ESP_LOGI(TAG2, "sent publish successful, msg_id=%d", msg_id);
+            //msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
+            //ESP_LOGI(TAG2, "sent publish successful, msg_id=%d", msg_id);
             break;
         case MQTT_EVENT_UNSUBSCRIBED:
             ESP_LOGI(TAG2, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -69,12 +63,11 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 
 static void mqtt_app_start(void)
 {
+    mqtt_event_group = xEventGroupCreate();
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = CONFIG_BROKER_URL,
         .event_handle = mqtt_event_handler,
         // .user_context = (void *)your_context
     };
-
-    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
-    esp_mqtt_client_start(client);
+    mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
 }
