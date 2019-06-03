@@ -4,25 +4,21 @@
 
 void ninux_mqtt_init(esp_err_t (*f)(esp_mqtt_event_handle_t)){
 	mqtt_app_start((*f));
+        xEventGroupWaitBits(mqtt_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 }
+
 void ninux_mqtt_publish(char* topic, char* data){
     	int msg_id;
 	bzero(mqtt_data,sizeof(mqtt_data));
 	bzero(mqtt_topic,sizeof(mqtt_topic));
 	sprintf(mqtt_data,"%s",data);
 	sprintf(mqtt_topic,"%s",topic);
-        
-        esp_mqtt_client_stop(mqtt_client);
-        esp_mqtt_client_start(mqtt_client);
-        //esp_mqtt_client_set_uri(mqtt_client, CONFIG_EXAMPLE_BROKER_TCP_URI);
-        ESP_LOGI(TAG2, "Note free memory: %d bytes", esp_get_free_heap_size());
-        xEventGroupWaitBits(mqtt_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
-
+        //esp_mqtt_client_start(mqtt_client);
+        //xEventGroupWaitBits(mqtt_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
         msg_id = esp_mqtt_client_publish(mqtt_client, mqtt_topic, mqtt_data, 0, 0, 0);
-	xEventGroupClearBits(mqtt_event_group, CONNECTED_BIT);
 }
 
-void ninux_mqtt_subscribe_topic(char* topic){
+void ninux_mqtt_set_topic(char* topic){
 	sprintf(input_mqtt_topic,"%s",topic);
 }
 
